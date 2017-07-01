@@ -5,17 +5,23 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+import json
 import time
 
 
 capabilities = DesiredCapabilities.CHROME.copy()
 capabilities['loggingPrefs'] = {'browser':'ALL'}
+body = None
 driver = webdriver.Chrome(desired_capabilities=capabilities)
 wait = WebDriverWait(driver, float("inf"), poll_frequency=0.1)
 
+# visit the website
 def go_to_site():
+    global body
     driver.get("http://splix.io/")
+    body = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
 
+# join a game with a given username
 def join(name="testest"):
     username = wait.until(EC.visibility_of_element_located((By.ID, "nameInput")))
     username.clear()
@@ -23,44 +29,45 @@ def join(name="testest"):
     join_button = wait.until(EC.visibility_of_element_located((By.ID, "joinButton")))
     join_button.click()
 
-def left(body):
-    body.send_keys(Keys.ARROW_LEFT)
+    # pause at the start of the game
+    for i in range(50):
+        pause()
 
-def right(body):
-    body.send_keys(Keys.ARROW_RIGHT)
-
-def up(body):
-    body.send_keys(Keys.ARROW_UP)
-
-def down(body):
-    body.send_keys(Keys.ARROW_DOWN)
-
-def pause(body):
-    body.send_keys("p")
-
-def honk(body):
-    body.send_keys(" ")
-
-
+# retrieve information about the game state
 def get_game_update():
-    driver.execute_script('console.log(JSON.stringify(players))')
+    script = """
+        console.clear();
+        console.log(JSON.stringify(players));
+    """
+    driver.execute_script(script)
     s = driver.get_log('browser')[-1]['message']
-    s = s[1 + s.index('"'):-1]
+    return json.loads(s[1 + s.index('"'):-1].replace('\\"', '"'))
 
 
-# close the browser window
-def quit():
-    driver.close()
+# helper functions for game controls
+left  = lambda t=0: body.send_keys(Keys.ARROW_LEFT) or time.sleep(t)
+right = lambda t=0: body.send_keys(Keys.ARROW_RIGHT) or time.sleep(t)
+up    = lambda t=0: body.send_keys(Keys.ARROW_UP) or time.sleep(t)
+down  = lambda t=0: body.send_keys(Keys.ARROW_DOWN) or time.sleep(t)
+honk  = lambda t=0: body.send_keys(" ") or time.sleep(t)
+pause = lambda t=0: body.send_keys("p") or time.sleep(t)
 
-# main method
+
 if __name__ == "__main__":
-    go_to_site()
-    join()
+    try:
+        go_to_site()
+        join('I\'m a Bot')
+        for command in [right, up] * 10:
+            command(0.1)
+        left(1)
+        for command in [down, left] * 10:
+            command(0.1)
+        pause()
+    except Exception as e:
+        print(e)
 
-    body = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
-    print('body located')
-    for command in [up, left, down, right, pause, honk]:
-        command(body)
-        time.sleep(1)
-
-    quit()
+    time.sleep(1)
+    try:
+        driver.close()
+    except:
+        pass
