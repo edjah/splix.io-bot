@@ -34,6 +34,8 @@ def join(name="testest"):
         pause()
 
 def join_team(name="testest"):
+    global body
+    body = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
     team_url = input("Enter lobby url: ")
 
     driver.get(team_url)
