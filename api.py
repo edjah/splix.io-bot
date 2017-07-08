@@ -33,6 +33,14 @@ def join(name="testest"):
     for i in range(50):
         pause()
 
+def join_team(name="testest"):
+    team_url = input("Enter lobby url: ")
+
+    driver.get(team_url)
+    username = wait.until(EC.visibility_of_element_located((By.ID, "nameInput")))
+    username.clear()
+    username.send_keys(name)
+
 # retrieve information about the game state
 def get_game_update():
     script = """
@@ -54,20 +62,21 @@ pause = lambda t=0: body.send_keys("p") or time.sleep(t)
 
 
 if __name__ == "__main__":
-    try:
-        go_to_site()
-        join('I\'m a Bot')
-        for command in [right, up] * 10:
-            command(0.1)
-        left(1)
-        for command in [down, left] * 10:
-            command(0.1)
-        pause()
-    except Exception as e:
-        print(e)
+    # try:
+    #     go_to_site()
+    #     join_team()
+    #     for command in [right, up] * 10:
+    #         command(0.1)
+    #     left(1)
+    #     for command in [down, left] * 10:
+    #         command(0.1)
+    #     pause()
+    # except Exception as e:
+    #     print(e)
 
-    time.sleep(1)
-    try:
-        driver.close()
-    except:
-        pass
+    # time.sleep(1)
+    # try:
+    #     driver.close()
+    # except:
+    #     pass
+    join_team()
