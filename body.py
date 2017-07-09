@@ -62,14 +62,18 @@ class SplixBot:
     def get_game_update(self):
         script = """
             console.clear();
-            console.log(JSON.stringify(players));
+            console.log(JSON.stringify({
+                'players': players,
+                'blocks': blocks,
+                'score': realStatScore
+            }));
         """
         try:
             self.driver.execute_script(script)
             s = self.driver.get_log('browser')[-1]['message']
             return json.loads(s[1 + s.index('"'):-1].replace('\\"', '"'))
         except:
-            return []
+            return {}
 
     def play(self, brain, sleep=0):
         try:
