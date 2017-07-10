@@ -65,7 +65,7 @@ class SplixBot:
             console.log(JSON.stringify({
                 'players': players,
                 'blocks': blocks,
-                'score': realStatScore
+                'score': realScoreStat
             }));
         """
         try:
@@ -89,7 +89,7 @@ class SplixBot:
 def main():
     from brain import Stalker
     bot = SplixBot(team_mode=True)
-    bot.join(url='http://splix.io/#team-beHAs')
+    bot.join(url='http://splix.io/#team-bW0aG')
     brain = Stalker(target_name='NennyBoi69')
     bot.play(brain)
 
