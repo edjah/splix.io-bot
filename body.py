@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 import json
 import random
 import time
+import keras.backend as K
 
 capabilities = DesiredCapabilities.CHROME.copy()
 capabilities['loggingPrefs'] = {'browser':'ALL'}
@@ -76,22 +77,28 @@ class SplixBot:
             return {}
 
     def play(self, brain, sleep=0):
-        try:
-            while True:
+        while True:
+            try:
+                start = time.time()
                 action = brain.update(self.get_game_update())
                 if action is not None:
                     self.directions[action]()
+                end = time.time()
+                print('Processing time: {:.5f} sec'.format(end - start))
                 time.sleep(sleep)
-        except KeyboardInterrupt:
-            self.driver.close()
+            except KeyboardInterrupt:
+                self.driver.close()
+                import sys
+                sys.exit()
 
 
 def main():
-    from brain import Stalker
-    bot = SplixBot(team_mode=True)
-    bot.join(url='http://splix.io/#team-bW0aG')
-    brain = Stalker(target_name='NennyBoi69')
+    from brain import NeuralNetwork
+    brain = NeuralNetwork()
+    bot = SplixBot(team_mode=False)
+    bot.join()
     bot.play(brain)
 
 if __name__ == "__main__":
     main()
+    K.clear_session()
