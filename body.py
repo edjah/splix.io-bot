@@ -65,7 +65,9 @@ class SplixBot:
             console.log(JSON.stringify({
                 'players': players,
                 'blocks': blocks,
-                'score': realStatScore
+                'score': realScoreStat,
+                'myPlayerPos': [Math.round(myPlayer.pos[0]), Math.round(myPlayer.pos[1])],
+                'myPlayerSkinBlock': myPlayer.skinBlock
             }));
         """
         try:
