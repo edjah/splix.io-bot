@@ -1,11 +1,12 @@
 import numpy as np
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout
+from keras.models import model_from_json
 import keras.backend as K
 
 MAX_PLAYERS = 10
 MAX_TRAIL = 50
-VIEW_RADIUS = 10
+VIEW_RADIUS = 25
 VEC_SIZE = 1 + MAX_PLAYERS * (MAX_TRAIL * 2 + 5) + (2 * VIEW_RADIUS + 1) ** 2
 print('VECTOR SIZE:', VEC_SIZE)
 
@@ -49,7 +50,19 @@ def game_update_to_vector(update):
     return np.append(vector, grid.flatten())
 
 class NeuralNetwork:
-    def __init__(self, input_size=VEC_SIZE, output_size=5, hidden=None, activation='relu', dropout=0.0):
+    def __init__(self, init_method='random', **kwargs):
+        if init_method == 'random':
+            self.random_init(**kwargs)
+        elif init_method == 'load':
+            assert 'json' in kwargs and 'h5' in kwargs
+            with open(kwargs['json'], 'r') as f:
+                self.model = model_from_json(f.read())
+                self.model.load_weights(kwargs['h5'])
+
+        self.model._make_predict_function()
+
+
+    def random_init(self, input_size=VEC_SIZE, output_size=5, hidden=None, activation='relu', dropout=0.0):
         hidden = hidden or []
         model = Sequential()
         if len(hidden) == 0:
@@ -62,11 +75,10 @@ class NeuralNetwork:
                     model.add(Dropout(dropout))
             model.add(Dense(output_size, activation='softmax'))
 
-        model._make_predict_function()
         self.model = model
 
     def update(self, update):
-        if update and all(x for x in update.values()):
+        if update and all(update.get(x) for x in ('players', 'blocks')):
             vec = game_update_to_vector(update)
             prediction = self.model.predict(vec.reshape(1, -1))
             return np.argmax(prediction[0])
@@ -83,15 +95,3 @@ class Stalker:
             return target['dir']
         else:
             return None
-
-
-if __name__ == '__main__':
-    import time
-    n = 2000
-    b = NeuralNetwork(n, 5, [512, 512])
-    update = np.arange(n)
-    start = time.time()
-    print(b.update(update))
-    end = time.time()
-    print('{} sec'.format(end - start))
-    K.clear_session()

@@ -25,7 +25,7 @@ class SplixBot:
         self.body = None
         self.team_mode = team_mode
 
-    def join(self, name=None, url=None):
+    def join(self, name=None, url=None, pause_at_start=True):
         assert not self.team_mode or url, 'Must have a url in team mode'
 
         url = url or 'http://splix.io/'
@@ -37,12 +37,12 @@ class SplixBot:
         username.clear()
         username.send_keys(name)
 
-        self.left  = lambda t=0: self.body.send_keys(Keys.ARROW_LEFT) or time.sleep(t)
-        self.right = lambda t=0: self.body.send_keys(Keys.ARROW_RIGHT) or time.sleep(t)
-        self.up    = lambda t=0: self.body.send_keys(Keys.ARROW_UP) or time.sleep(t)
-        self.down  = lambda t=0: self.body.send_keys(Keys.ARROW_DOWN) or time.sleep(t)
-        self.honk  = lambda t=0: self.body.send_keys(" ") or time.sleep(t)
-        self.pause = lambda t=0: self.body.send_keys("p") or time.sleep(t)
+        self.left  = lambda t=0: self.body.send_keys(Keys.ARROW_LEFT) or t and time.sleep(t)
+        self.right = lambda t=0: self.body.send_keys(Keys.ARROW_RIGHT) or t and time.sleep(t)
+        self.up    = lambda t=0: self.body.send_keys(Keys.ARROW_UP) or t and time.sleep(t)
+        self.down  = lambda t=0: self.body.send_keys(Keys.ARROW_DOWN) or t and time.sleep(t)
+        self.honk  = lambda t=0: self.body.send_keys(" ") or t and time.sleep(t)
+        self.pause = lambda t=0: self.body.send_keys("p") or t and time.sleep(t)
         self.directions = {
             0: self.right,
             1: self.down,
@@ -56,8 +56,9 @@ class SplixBot:
             join_button.click()
 
             # pause at the start of the game
-            for i in range(50):
-                self.pause()
+            if pause_at_start:
+                for i in range(50):
+                    self.pause(0.02)
 
 
     def get_game_update(self):
@@ -66,35 +67,43 @@ class SplixBot:
             console.log(JSON.stringify({
                 'players': players,
                 'blocks': blocks,
-                'score': realScoreStat
+                'score': Math.round(realScoreStat),
+                'dead': myPlayer && myPlayer.isDead && myPlayer.deathWasCertain,
+                'suicide': lastStatKiller === 'yourself'
+
             }));
         """
-        try:
-            self.driver.execute_script(script)
-            s = self.driver.get_log('browser')[-1]['message']
+        self.driver.execute_script(script)
+        s = self.driver.get_log('browser')[-1]['message']
+        if '{\\"' in s:
             return json.loads(s[1 + s.index('"'):-1].replace('\\"', '"'))
-        except:
+        else:
             return {}
-
     def play(self, brain, sleep=0):
         while True:
             try:
                 start = time.time()
-                action = brain.update(self.get_game_update())
-                if action is not None:
-                    self.directions[action]()
-                end = time.time()
-                print('Processing time: {:.5f} sec'.format(end - start))
-                time.sleep(sleep)
+                dead, update = False, self.get_game_update()
+                if update and update['dead']:
+                    time.sleep(1)
+                    score, suicide = update['score'], update['suicide']
+                    print('You died\nScore: {} | Suicide: {}'.format(score, suicide))
+                    return update
+                else:
+                    action = brain.update(update)
+                    if action is not None:
+                        self.directions[action]()
+                    end = time.time()
+                    print('Action: {} | Update time: {:.5f} sec'.format(action, end - start))
+                    time.sleep(sleep)
             except KeyboardInterrupt:
-                self.driver.close()
-                import sys
-                sys.exit()
+                self.driver.quit()
+                return update
 
 
 def main():
     from brain import NeuralNetwork
-    brain = NeuralNetwork()
+    brain = NeuralNetwork(init_method='load', json='model.json', h5='model.h5')
     bot = SplixBot(team_mode=False)
     bot.join()
     bot.play(brain)

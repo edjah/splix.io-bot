@@ -102,3 +102,7 @@ ENV/
 
 # Mac specific
 .DS_Store
+
+# model outputs
+*.json
+*.h5
